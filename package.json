@@ -1,6 +1,6 @@
 {
   "name": "mcp-tool-allowlist",
-  "version": "0.1.0",
+  "version": "0.1.0-rc.1",
   "description": "ALLOW_TOOLS/DENY_TOOLS for an MCP server: prefix globs, a curated preset, and error messages that name what exists",
   "keywords": [
     "mcp",
