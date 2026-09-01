@@ -205,10 +205,9 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
     suppression ? (catalogue.ungated ?? []) : catalogue.all
   );
 
-  // Set to the gate's own wording when an allow entry named real tools and the
-  // gate suppressed all of them, so that "nothing is left" can name the reason
-  // rather than shrugging.
-  let suppressedBy: string | undefined;
+  // Set when an allow entry named real tools and the gate suppressed all of
+  // them, so that "nothing is left" can name the reason rather than shrugging.
+  let suppressedBy: Gate | undefined;
 
   let selected: Set<string>;
   if (allow === undefined) {
@@ -244,7 +243,7 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
             `${names.server}: ${names.allow}: ${describe(entry)} matches only tools ` +
               `that ${suppression.noun} suppresses — it contributes nothing.`
           );
-          suppressedBy = suppression.noun;
+          suppressedBy = suppression;
           continue;
         }
         // An exact name, though, was typed by someone who believes it is exposed.
@@ -276,8 +275,9 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
       suppressedBy === undefined
         ? `${names.allow}/${names.deny} leave no tools registered — the ` +
             'server would start with an empty tool list.'
-        : `${names.allow} selects only tools that ${suppressedBy} suppresses — the ` +
-            'server would start with an empty tool list.'
+        : `${names.allow} selects only tools that ${suppressedBy.noun} suppresses, ` +
+            `but ${suppressedBy.variable} is set — the server would start with an ` +
+            'empty tool list.'
     );
   }
 

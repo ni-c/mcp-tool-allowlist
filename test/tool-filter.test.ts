@@ -225,9 +225,13 @@ describe('the gate', () => {
   });
 
   it('names the gate when it is the reason nothing is left', () => {
+    // And names the *switch*, not just the wording. This is the more severe of
+    // the two gate errors — the server will not start at all — so it must not
+    // be the less actionable one. The exact-name case above already says which
+    // variable to unset; leaving it out here sends the operator hunting.
     const warn = vi.fn();
     expect(() => build({ allowTools: 'delete_*', gate: closed, warn })).toThrow(
-      /selects only tools that read-only mode suppresses/
+      /selects only tools that read-only mode suppresses.*THING_READ_ONLY/s
     );
   });
 
