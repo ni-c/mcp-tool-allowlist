@@ -1,0 +1,60 @@
+{
+  "name": "mcp-tool-allowlist",
+  "version": "0.1.0",
+  "description": "ALLOW_TOOLS/DENY_TOOLS for an MCP server: prefix globs, a curated preset, and error messages that name what exists",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "allowlist",
+    "denylist",
+    "tools"
+  ],
+  "license": "MIT",
+  "author": "Willi Thiel",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ni-c/mcp-tool-allowlist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ni-c/mcp-tool-allowlist/issues"
+  },
+  "homepage": "https://github.com/ni-c/mcp-tool-allowlist#readme",
+  "funding": "https://github.com/sponsors/ni-c",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "oxlint --deny-warnings && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "oxlint": "^1.80.0",
+    "prettier": "^3.6.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  }
+}
