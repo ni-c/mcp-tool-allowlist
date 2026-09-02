@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- #region changelog -->
 
+## [0.2.1] - 2026-09-02
+
+### Fixed
+
+- The "nothing is left" error blamed the gate whenever a pattern had been
+  suppressed, even when the **deny list** was what emptied the selection. The
+  wording was wrong twice over: the allow list had named a registered tool, and
+  the only remedy the message offers is to unset the gate variable — which
+  registers the write tools the gate was closed for. Following it turned a
+  server that refuses to start into a read-only deployment serving its writes.
+  The gate is now named only when nothing survived it before the deny list ran.
+
+- Entries keep the case they were written in. They were lowercased on the way
+  in, which handed `describeEntry` a mixed-case credential as lowercase hex —
+  passing the charset half of the redaction. Combined with a catalogue whose
+  longest tool name is 32 characters, a 32-character API key was inside the
+  length limit too, and both halves let it through into the error message.
+  Matching stays case-insensitive; only the value the message sees changed.
+
+### Added
+
+- `buildToolFilter` validates the catalogue it is given: a name in `essential`
+  or `ungated` that is not in `all` is now a `ToolFilterError` naming it. `all`
+  is what every entry is resolved against, so a name outside it can never be
+  selected — a stray `essential` member drops out of the preset in silence, and
+  a stray `ungated` member is contradictory (registered while the gate is
+  closed, fatal to name in the allow list). Seventeen servers assert this in
+  their own suites; it belongs at the one place that depends on it.
+
+### Changed
+
+- The JSDoc for `Catalogue.ungated` said "omitted means the gate never closes
+  anything". The code does `catalogue.ungated ?? []`, so omitting it means a
+  closed gate suppresses **everything** — the server then refuses to start. The
+  code is right (fail-closed) and the comment was the outlier.
+
 ## [0.2.0] - 2026-09-01
 
 ### Changed
