@@ -44,7 +44,13 @@ export interface Catalogue {
   readonly all: readonly string[];
   /** Members of the `essential` preset. Omitted means the preset does not exist. */
   readonly essential?: readonly string[];
-  /** What is registered when the gate is closed. Omitted means the gate never closes anything. */
+  /**
+   * What is registered when the gate is closed.
+   *
+   * Omitted means a closed gate suppresses **everything**, which leaves nothing
+   * to register and is reported as the configuration mistake it is. A server
+   * whose gate is meant to suppress nothing should not pass a `gate` at all.
+   */
   readonly ungated?: readonly string[];
 }
 
@@ -105,15 +111,21 @@ const PRESET = 'essential';
  *
  * Empty entries are dropped, so `a,,b` and a trailing comma are both fine, and
  * a value that is empty or only whitespace counts as *unset* — `X_ALLOW_TOOLS=`
- * in a compose file must not mean "allow nothing". Entries are lowercased:
- * catalogues are lowercase by convention, so this is lossless, and a shell that
- * upper-cased a name should not take the server down.
+ * in a compose file must not mean "allow nothing".
+ *
+ * The entries keep the case they were written in. Matching is case-insensitive
+ * anyway — catalogues are lowercase by convention, and a shell that
+ * upper-cased a name should not take the server down — but lowercasing them
+ * *here* threw away the one signal `describeEntry` has left: a value that is
+ * not tool-name-shaped. Normalised first, a mixed-case 32-character API token
+ * arrived at that check as lowercase hex, passed the charset half of it, and
+ * was quoted back into the log in full.
  */
 function entriesOf(raw: string | undefined): string[] | undefined {
   if (raw === undefined) return undefined;
   const entries = raw
     .split(',')
-    .map((entry) => entry.trim().toLowerCase())
+    .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
   return entries.length > 0 ? entries : undefined;
 }
@@ -164,6 +176,35 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
   const describe = (entry: string): string => describeEntry(entry, catalogue);
   const catalogueList = (): string => [...catalogue.all].sort().join(', ');
 
+  // The catalogue is the authority every entry is checked against, and it was
+  // the one thing never checked itself. A name in `essential` that is not in
+  // `all` drops out of the preset in silence — the exact failure this library
+  // exists to prevent, one level up: nobody looks for the cause of an absence
+  // in a constant. A name in `ungated` that is not in `all` is worse than
+  // silent, it is contradictory: the tool is registered when the gate is
+  // closed, but naming it in the allow list is fatal, because `expand` only
+  // ever looks at `all`.
+  //
+  // Seventeen servers assert this in their own test suites, always the same
+  // two lines. It belongs at the one place that depends on it, not in
+  // seventeen copies that a new consumer does not inherit.
+  const known = new Set(catalogue.all);
+  for (const [field, members] of [
+    ['essential', catalogue.essential],
+    ['ungated', catalogue.ungated],
+  ] as const) {
+    const stray = (members ?? []).filter((tool) => !known.has(tool));
+    if (stray.length > 0) {
+      throw new ToolFilterError(
+        `catalogue.${field} names ${stray.map((tool) => `"${tool}"`).join(', ')}, ` +
+          `which ${stray.length === 1 ? 'is' : 'are'} not in catalogue.all. ` +
+          'This is a mistake in the server, not in the configuration: ' +
+          '`all` is what every entry is resolved against, so a name outside it ' +
+          'can never be selected.'
+      );
+    }
+  }
+
   /** Expands one entry to the catalogue tools it names. */
   const expand = (entry: string, variable: string): string[] => {
     const star = entry.indexOf('*');
@@ -178,10 +219,11 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
             'else is an exact tool name.'
         );
       }
-      const prefix = entry.slice(0, -1);
+      const prefix = entry.slice(0, -1).toLowerCase();
       return catalogue.all.filter((tool) => tool.startsWith(prefix));
     }
-    return catalogue.all.filter((tool) => tool === entry);
+    const name = entry.toLowerCase();
+    return catalogue.all.filter((tool) => tool === name);
   };
 
   if (
@@ -215,7 +257,7 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
   } else {
     selected = new Set<string>();
     for (const entry of allow) {
-      if (entry === PRESET && catalogue.essential !== undefined) {
+      if (entry.toLowerCase() === PRESET && catalogue.essential !== undefined) {
         // Preset members are not names the operator typed, so a member the gate
         // suppresses is dropped silently rather than being an error.
         for (const tool of catalogue.essential) {
@@ -257,6 +299,10 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
     }
   }
 
+  // Remembered before the deny list runs, because the two reasons "nothing is
+  // left" can have need telling apart below.
+  const beforeDeny = selected.size;
+
   for (const entry of deny ?? []) {
     // Deny lists are written defensively — "never expose delete_*, whatever
     // else is on" — so matching nothing that survives is fine. Matching nothing
@@ -271,13 +317,17 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
   }
 
   if (selected.size === 0) {
+    // The gate is only the reason when nothing survived it in the first place.
+    // Blaming it whenever a pattern happened to be suppressed sends the reader
+    // to the wrong variable — and the variable it names is the one that, if
+    // unset, exposes the write tools the gate was closed for.
     throw new ToolFilterError(
-      suppressedBy === undefined
-        ? `${names.allow}/${names.deny} leave no tools registered — the ` +
-            'server would start with an empty tool list.'
-        : `${names.allow} selects only tools that ${suppressedBy.noun} suppresses, ` +
+      suppressedBy !== undefined && beforeDeny === 0
+        ? `${names.allow} selects only tools that ${suppressedBy.noun} suppresses, ` +
             `but ${suppressedBy.variable} is set — the server would start with an ` +
             'empty tool list.'
+        : `${names.allow}/${names.deny} leave no tools registered — the ` +
+            'server would start with an empty tool list.'
     );
   }
 

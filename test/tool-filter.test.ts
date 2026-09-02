@@ -235,6 +235,39 @@ describe('the gate', () => {
     );
   });
 
+  it('blames the deny list when the deny list is what emptied it', () => {
+    // Both conditions hold at once: `delete_*` matched only suppressed tools,
+    // so the gate is on record — and then the deny list removed the one entry
+    // that had survived. The gate wording would be wrong twice over: the allow
+    // list did name a registered tool, and the only remedy it offers is to
+    // unset THING_READ_ONLY, which registers delete_thing. Following the
+    // message would turn a server that refuses to start into a read-only
+    // deployment serving its write tools.
+    const warn = vi.fn();
+    let thrown: unknown;
+    try {
+      build({
+        allowTools: 'delete_*,get_thing',
+        denyTools: 'get_thing',
+        gate: closed,
+        warn,
+      });
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(ToolFilterError);
+    const message = (thrown as Error).message;
+    expect(message).toContain('THING_DENY_TOOLS');
+    expect(message).not.toContain('THING_READ_ONLY');
+  });
+
+  it('still blames the gate when the gate really is the reason', () => {
+    // The counterpart, so the fix above cannot be "never mention the gate".
+    expect(() =>
+      build({ allowTools: 'delete_*', gate: closed, warn: vi.fn() })
+    ).toThrow(/read-only mode suppresses.*THING_READ_ONLY/s);
+  });
+
   it('drops preset members it suppresses without complaining', () => {
     // Preset members are not names the operator typed.
     expect(selected(build({ allowTools: 'essential', gate: closed }))).toEqual([
@@ -387,5 +420,101 @@ describe('installing it on a server', () => {
     const original = server.registerTool;
     installToolFilter(server as never, build());
     expect(server.registerTool).toBe(original);
+  });
+});
+
+describe('the catalogue itself', () => {
+  // Every entry is checked against `all`, and `all` was the one thing never
+  // checked. Seventeen servers assert this in their own suites; it belongs at
+  // the place that depends on it, where a new consumer inherits it.
+  it('refuses an essential member that is not in all', () => {
+    expect(() =>
+      buildToolFilter({
+        allowTools: 'essential',
+        denyTools: undefined,
+        catalogue: { ...CATALOGUE, essential: ['get_thing', 'get_thnig'] },
+        names: NAMES,
+      })
+    ).toThrow(/catalogue\.essential names "get_thnig".*not in catalogue\.all/s);
+  });
+
+  it('refuses an ungated member that is not in all', () => {
+    // Worse than silent: the tool is registered while the gate is closed, but
+    // naming it in the allow list is fatal, because expand only sees `all`.
+    expect(() =>
+      buildToolFilter({
+        allowTools: undefined,
+        denyTools: undefined,
+        catalogue: { ...CATALOGUE, ungated: ['get_thing', 'ghost_tool'] },
+        names: NAMES,
+        gate: { ...GATE, closed: true, activatesFilter: true },
+      })
+    ).toThrow(/catalogue\.ungated names "ghost_tool"/);
+  });
+
+  it('lists every stray name, not just the first', () => {
+    // A constant with two typos in it is a constant somebody edited in a hurry,
+    // which is exactly when naming only one of them costs a second round trip.
+    expect(() =>
+      buildToolFilter({
+        allowTools: undefined,
+        denyTools: undefined,
+        catalogue: { ...CATALOGUE, essential: ['get_thnig', 'lst_things'] },
+        names: NAMES,
+      })
+    ).toThrow(/"get_thnig", "lst_things", which are not in/);
+  });
+
+  it('says it is the server mistake rather than the operator one', () => {
+    expect(() =>
+      buildToolFilter({
+        allowTools: undefined,
+        denyTools: undefined,
+        catalogue: { ...CATALOGUE, essential: ['nope'] },
+        names: NAMES,
+      })
+    ).toThrow(/mistake in the server, not in the configuration/);
+  });
+});
+
+describe('describeEntry after normalisation', () => {
+  it('redacts a mixed-case token rather than quoting it back', () => {
+    // The entries used to be lowercased before they reached this check, which
+    // handed a mixed-case token to the charset test as lowercase hex. mealie's
+    // longest tool name is 32 characters, so a 32-character API key was inside
+    // the length limit too, and both halves of the redaction passed it.
+    const token = 'AbCdEf0123456789AbCdEf0123456789';
+    expect(() =>
+      buildToolFilter({
+        allowTools: token,
+        denyTools: undefined,
+        catalogue: {
+          all: [...CATALOGUE.all, 'remove_thing_from_shopping_list_now'],
+        },
+        names: NAMES,
+      })
+    ).toThrow(/not tool-name-shaped/);
+  });
+
+  it('still matches a name whatever case it was written in', () => {
+    // Redacting the value is not a reason to stop accepting it: a shell that
+    // upper-cased a name should not take the server down.
+    const filter = buildToolFilter({
+      allowTools: 'GET_THING,List_Things',
+      denyTools: undefined,
+      catalogue: CATALOGUE,
+      names: NAMES,
+    });
+    expect([...filter.selected].sort()).toEqual(['get_thing', 'list_things']);
+  });
+
+  it('still accepts the preset in any case', () => {
+    const filter = buildToolFilter({
+      allowTools: 'ESSENTIAL',
+      denyTools: undefined,
+      catalogue: CATALOGUE,
+      names: NAMES,
+    });
+    expect(filter.selected.size).toBe(5);
   });
 });
