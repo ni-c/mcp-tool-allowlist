@@ -1,8 +1,13 @@
 # mcp-tool-allowlist
 
+<!-- badges: start -->
+
+[![CI](https://img.shields.io/github/actions/workflow/status/ni-c/mcp-tool-allowlist/ci.yml?branch=main&label=CI)](https://github.com/ni-c/mcp-tool-allowlist/actions/workflows/ci.yml)
+<a href="https://socket.dev/npm/package/mcp-tool-allowlist"><img src="https://socket.dev/api/badge/npm/package/mcp-tool-allowlist" alt="Socket supply-chain report" height="20"></a>
+<br>
 [![npm version](https://img.shields.io/npm/v/mcp-tool-allowlist)](https://www.npmjs.com/package/mcp-tool-allowlist)
-[![node](https://img.shields.io/node/v/mcp-tool-allowlist)](https://nodejs.org)
-[![license](https://img.shields.io/npm/l/mcp-tool-allowlist)](LICENSE)
+[![sponsor](https://img.shields.io/badge/sponsor-ni--c-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ni-c)
+<!-- badges: end -->
 
 `ALLOW_TOOLS` / `DENY_TOOLS` for a [Model Context
 Protocol](https://modelcontextprotocol.io) server — prefix globs, a curated
