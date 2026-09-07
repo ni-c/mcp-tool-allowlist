@@ -174,7 +174,7 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
   const gateClosed = gate?.closed === true;
 
   const describe = (entry: string): string => describeEntry(entry, catalogue);
-  const catalogueList = (): string => [...catalogue.all].sort().join(', ');
+  const catalogueList = (): string => catalogue.all.toSorted().join(', ');
 
   // The catalogue is the authority every entry is checked against, and it was
   // the one thing never checked itself. A name in `essential` that is not in
@@ -292,7 +292,7 @@ export function buildToolFilter(options: BuildToolFilterOptions): ToolFilter {
         throw new ToolFilterError(
           `${names.allow}: ${describe(entry)} names a tool that ${suppression.noun} suppresses — ` +
             `it is never registered. Remove it from ${names.allow}, or unset ` +
-            `${suppression.variable}. Available now: ${[...registered].sort().join(', ')}.`
+            `${suppression.variable}. Available now: ${[...registered].toSorted().join(', ')}.`
         );
       }
       for (const tool of survivors) selected.add(tool);

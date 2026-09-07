@@ -60,7 +60,8 @@ function build(
   });
 }
 
-const selected = (filter: ToolFilter): string[] => [...filter.selected].sort();
+const selected = (filter: ToolFilter): string[] =>
+  [...filter.selected].toSorted();
 
 describe('when nothing is configured', () => {
   it('does not filter at all', () => {
@@ -378,30 +379,30 @@ describe('quoting a rejected entry back', () => {
   });
 });
 
-describe('installing it on a server', () => {
-  /** Just enough of an McpServer to see what registerTool did. */
-  function fakeServer() {
-    const removed: string[] = [];
-    const registered: string[] = [];
-    const server = {
-      registerTool(name: string) {
-        registered.push(name);
-        return {
-          remove: () => removed.push(name),
-        };
-      },
-    };
-    return { server, removed, registered };
-  }
+/** Just enough of an McpServer to see what registerTool did. */
+function fakeServer() {
+  const removed: string[] = [];
+  const registered: string[] = [];
+  const server = {
+    registerTool(name: string) {
+      registered.push(name);
+      return {
+        remove: () => removed.push(name),
+      };
+    },
+  };
+  return { server, removed, registered };
+}
 
+describe('installing it on a server', () => {
   it('removes the tools the filter did not select', () => {
     const { server, removed, registered } = fakeServer();
     installToolFilter(server as never, build({ allowTools: 'get_thing' }));
     for (const tool of CATALOGUE.all)
       (server.registerTool as (n: string) => unknown)(tool);
     expect(registered).toEqual([...CATALOGUE.all]);
-    expect(removed.sort()).toEqual(
-      [...CATALOGUE.all].filter((t) => t !== 'get_thing').sort()
+    expect(removed.toSorted()).toEqual(
+      CATALOGUE.all.filter((t) => t !== 'get_thing').toSorted()
     );
   });
 
@@ -505,7 +506,10 @@ describe('describeEntry after normalisation', () => {
       catalogue: CATALOGUE,
       names: NAMES,
     });
-    expect([...filter.selected].sort()).toEqual(['get_thing', 'list_things']);
+    expect([...filter.selected].toSorted()).toEqual([
+      'get_thing',
+      'list_things',
+    ]);
   });
 
   it('still accepts the preset in any case', () => {

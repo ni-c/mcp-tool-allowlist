@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a `src/` this package does not ship — so a stack trace under that flag named a
   file nobody could open. `dist/**/*.js` is unchanged; the package is about a
   fifth smaller.
+- oxlint's `suspicious` category is on; 7 findings fixed (mostly
+  `Array#toSorted()` over copy-and-sort and un-shadowed names). No runtime
+  behaviour changed.
 
 [Unreleased]: https://github.com/ni-c/mcp-tool-allowlist/compare/v0.2.1...HEAD
 
