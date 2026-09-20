@@ -3,7 +3,7 @@
 <!-- badges: start -->
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ni-c/mcp-tool-allowlist/ci.yml?branch=main&label=CI)](https://github.com/ni-c/mcp-tool-allowlist/actions/workflows/ci.yml)
-<a href="https://socket.dev/npm/package/mcp-tool-allowlist"><img src="https://socket.dev/api/badge/npm/package/mcp-tool-allowlist" alt="Socket supply-chain report" height="20"></a>
+[![Socket Badge](https://badge.socket.dev/npm/package/mcp-tool-allowlist)](https://socket.dev/npm/package/mcp-tool-allowlist)
 <br>
 [![npm version](https://img.shields.io/npm/v/mcp-tool-allowlist)](https://www.npmjs.com/package/mcp-tool-allowlist)
 [![sponsor](https://img.shields.io/badge/sponsor-ni--c-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ni-c)
